@@ -3,6 +3,7 @@
         "app_function": "amazon_lambda_datascience.__init__.app", 
         "aws_region": "eu-central-1", 
         "profile_name": "default", 
-        "s3_bucket": "zappa-9twebutvg"
+        "s3_bucket": "zappa-9twebutvg",
+        "slim_handler": true
     }
 }
