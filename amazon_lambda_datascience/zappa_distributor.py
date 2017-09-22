@@ -4,20 +4,18 @@ import zlib
 from functools import partial
 
 
-def my_map(f, data, chunksize, compression):
+def my_map(map_function, data, chunksize, compression):
     """
     Own implementation of the python "map" function looping
     over the data and calculating f on each of the items.
     Returns a list of the results calculated by each of the
     single calculations.
-    :param f: The function to calculate.
+    :param map_function: The function to calculate.
     :param data: The data to loop over.
     :param chunksize: The chunksize the data is chunked into before doing the calculation.
     :return: A list of the results from every calculation.
     """
     partitioned_chunks = partition(data, chunk_size=chunksize)
-
-    map_function = partial(feature_calculation_on_chunks, f=f)
 
     result = distribute_to_lambda(map_function, partitioned_chunks, compression=compression)
     reduced_result = list(itertools.chain.from_iterable(result))
@@ -141,5 +139,5 @@ def function_in_lambda(encoded_data, map_function, compression):
     :return: The encoded result of the function call.
     """
     data = decode_payload(encoded_data, compression)
-    result = map_function(data)
+    result = feature_calculation_on_chunks(data, map_function)
     return encode_payload(result, compression)
