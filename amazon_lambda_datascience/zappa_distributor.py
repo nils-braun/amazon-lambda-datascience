@@ -1,8 +1,10 @@
 import itertools
+import json
+import zlib
 from functools import partial
 
 
-def my_map(f, data, chunksize):
+def my_map(f, data, chunksize, compression):
     """
     Own implementation of the python "map" function looping
     over the data and calculating f on each of the items.
