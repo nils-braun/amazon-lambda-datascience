@@ -1,7 +1,7 @@
 from __future__ import print_function
 import requests
 import pandas as pd
-from io import BytesIO
+from io import BytesIO, StringIO
 from time import time
 
 if __name__ == '__main__':
@@ -23,4 +23,5 @@ if __name__ == '__main__':
     s.close()
 
     print(result_df.head())
+
     print("The calculation took", end - start, "seconds")
