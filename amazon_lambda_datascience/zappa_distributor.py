@@ -51,3 +51,37 @@ def feature_calculation_on_chunks(chunk_list, f):
     """
     results = [f(chunk) for chunk in chunk_list]
     return results
+
+
+def encode_payload(payload, compression):
+    """
+    Encode an arbitrary python object to be transportable in
+    JSON objects.
+    :param payload: The object to transport.
+    :param compression: Turn on compression or not.
+    :return: A string with the object representation.
+    """
+    json_string = json.dumps(payload)
+
+    if compression:
+        compressed_string = zlib.compress(json_string)
+        return compressed_string
+    else:
+        return json_string
+
+
+def decode_payload(compressed_string, compression):
+    """
+    Decode a string representation of a python object
+    back to the object.
+    :param compressed_string: The python representation of the object.
+    :param compression: Was compression turned on during encoding?
+    :return: The python object
+    """
+    if compression:
+        json_string = zlib.decompress(compressed_string)
+    else:
+        json_string = compressed_string
+
+    return json.loads(json_string)
+
