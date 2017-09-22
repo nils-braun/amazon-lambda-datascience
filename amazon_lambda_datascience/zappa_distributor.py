@@ -3,8 +3,12 @@ import json
 import zlib
 from functools import partial
 
+from zappa.async import get_func_task_path, import_and_get_task
 
-def my_map(map_function, data, chunksize, compression):
+from aws_utils import send_to_other_lambda
+
+
+def my_map(map_function, data, chunksize, compression, invoke_lambda):
     """
     Own implementation of the python "map" function looping
     over the data and calculating f on each of the items.
@@ -13,11 +17,14 @@ def my_map(map_function, data, chunksize, compression):
     :param map_function: The function to calculate.
     :param data: The data to loop over.
     :param chunksize: The chunksize the data is chunked into before doing the calculation.
+    :param compression: Use compression during streaming.
+    :param invoke_lambda: Call another lambda or do everything in this lambda.
     :return: A list of the results from every calculation.
     """
     partitioned_chunks = partition(data, chunk_size=chunksize)
 
-    result = distribute_to_lambda(map_function, partitioned_chunks, compression=compression)
+    result = distribute_to_lambda(map_function, partitioned_chunks, compression=compression,
+                                  invoke_lambda=invoke_lambda)
     reduced_result = list(itertools.chain.from_iterable(result))
 
     return reduced_result
@@ -85,7 +92,7 @@ def decode_payload(compressed_string, compression):
     return json.loads(json_string)
 
 
-def distribute_to_lambda(map_function, iterable_data, compression):
+def distribute_to_lambda(map_function, iterable_data, compression, invoke_lambda):
     """
     Method comparable to pythons `map` function, which
     calls a given map function on an iterable data set.
@@ -99,18 +106,19 @@ def distribute_to_lambda(map_function, iterable_data, compression):
     :param map_function: The function that should be called on each item
     :param iterable_data: The list of items that is distributed
     :param compression: Turn on compression on streaming the data.
+    :param invoke_lambda: Call another lambda or do everything in this lambda
     :return: The list of results for each lambda.
     """
     from multiprocessing.pool import ThreadPool
     pool = ThreadPool()
 
-    prefilled_map = partial(run_lambda, map_function=map_function, compression=compression)
+    prefilled_map = partial(run_lambda, map_function=map_function, compression=compression, invoke_lambda=invoke_lambda)
     results = pool.map(prefilled_map, iterable_data)
 
     return results
 
 
-def run_lambda(data, map_function, compression):
+def run_lambda(data, map_function, compression, invoke_lambda):
     """
     Run a given map_function on the given data and return the result.
 
@@ -121,11 +129,15 @@ def run_lambda(data, map_function, compression):
     :param data: The data that is sent to the lambda function
     :param map_function: The function that is called in the lambda on the data.
     :param compression: Turn on compression during streaming or not.
+    :param invoke_lambda: Call another lambda or do everything in this lambda
     :return: The result of the function call.
     """
     encoded_data = encode_payload(data, compression)
-    # TODO: we are cheating a bit here, because we are just calling the function instead of sending it to another lambda
-    encoded_result = function_in_lambda(encoded_data, map_function, compression)
+    map_function = get_func_task_path(map_function)
+    if not invoke_lambda:
+        encoded_result = function_in_lambda(encoded_data, map_function, compression)
+    else:
+        encoded_result = send_to_other_lambda(function_in_lambda, encoded_data, map_function, compression)
     return decode_payload(encoded_result, compression)
 
 
@@ -138,6 +150,7 @@ def function_in_lambda(encoded_data, map_function, compression):
     :param compression: Turn on compression during streaming.
     :return: The encoded result of the function call.
     """
+    map_function = import_and_get_task(map_function)
     data = decode_payload(encoded_data, compression)
     result = feature_calculation_on_chunks(data, map_function)
     return encode_payload(result, compression)

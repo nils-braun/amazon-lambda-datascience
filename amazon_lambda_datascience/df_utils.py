@@ -15,6 +15,7 @@ def calculate_result(df, options):
     id_column = options.get("id_column", "id")
     value_column = options.get("value_column", "value")
     compression = options.get("compression", "False") == "True"
+    invoke_lambda = options.get("invoke_lambda", "True") == "True"
 
     grouped_data = df.groupby(id_column)[value_column]
 
@@ -24,7 +25,8 @@ def calculate_result(df, options):
 
     grouped_data = map(convert_to_dict, grouped_data)
 
-    result = my_map(feature_calculation, grouped_data, chunksize=chunksize, compression=compression)
+    result = my_map(feature_calculation, grouped_data, chunksize=chunksize, compression=compression,
+                    invoke_lambda=invoke_lambda)
     result = pd.DataFrame(result).set_index("id", drop=True)
 
     return result
