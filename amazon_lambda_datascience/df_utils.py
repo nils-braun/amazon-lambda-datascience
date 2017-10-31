@@ -19,8 +19,8 @@ def calculate_result(df, options):
     grouped_data = df.groupby(id_column)[value_column]
 
     def convert_to_dict(x):
-        id, series = x
-        return {"id": id, "values": list(series.values), "name": series.name}
+        series_id, series = x
+        return {"id": series_id, "values": list(series.values), "name": series.name}
 
     grouped_data = map(convert_to_dict, grouped_data)
 
