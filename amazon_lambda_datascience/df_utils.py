@@ -29,5 +29,5 @@ def feature_calculation(chunk):
     :param chunk: The id and the time series the sum will be calculated for.
     :return: A dict with the id and the result of the calculation.
     """
-    id, timeseries = chunk
-    return {"id": id, "result": timeseries.sum()}
+    series_id, timeseries = chunk
+    return {"id": series_id, "result": timeseries.sum()}
